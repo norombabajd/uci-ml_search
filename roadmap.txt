@@ -1,0 +1,10 @@
+To-Do:
+
+- Integrate "dataset_title" into considerations
+    - Explore integrating "relevant_papers" as well
+- Begin narrowing down to accept queries
+- Continue to find new visualizations to verify context of data
+- If necessary, filter trained topics
+- Connect to jupyter notebook, host on cluster & begin training with extensive dataset
+- FIND A METHODOLOGY TO MEASURE MODEL ACCURACY
+- FIND A METHODOLOGY TO MEASURE STARTER CODE MODEL ACCURACY, COMPARE RESULTS
