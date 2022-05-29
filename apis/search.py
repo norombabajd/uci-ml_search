@@ -6,7 +6,7 @@ from rank_bm25 import BM25Okapi
 from flask_restx import Namespace, Resource, fields
 
 
-data = pd.read_csv('C:\\Users\\johndaniel\\search\\data\\datasets.csv')
+data = pd.read_csv('C:\\Users\\johndaniel\\GitHub\\search\\data\\datasets.csv')
 data['relevant_info'].fillna("", inplace=True)
 data['relevant_info'] = np.where(data['relevant_info'] == "Provide all relevant information about your data set.", "", data['relevant_info'])
 data['description'] = data['dataset_title']+" "+data['relevant_info']
@@ -42,7 +42,7 @@ class Search(Resource):
     def post(self):
         sentence = self.api.payload['sentence'].lower()
         index = nmslib.init(method='hnsw', space='cosinesimil')
-        index.loadIndex("C:\\Users\\johndaniel\\search\\data\\data_index")
+        index.loadIndex("C:\\Users\\johndaniel\\GitHub\\search\\data\\data_index")
         embed = model.encode(sentence)
         ids, distances = index.knnQuery(embed, k=10)
         results = [{"Data Name" : data['dataset_title'].values[x], "Data Description" : data['relevant_info'].values[x]} for x in ids]
