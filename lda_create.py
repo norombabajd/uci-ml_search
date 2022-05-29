@@ -1,5 +1,3 @@
-from pprint import pprint
-
 import env, gensim, pyLDAvis
 import lda_prepare as lda
 import pyLDAvis.gensim_models as gensim_models

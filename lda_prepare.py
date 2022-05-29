@@ -7,7 +7,7 @@ from nltk.corpus import stopwords
 #import nltk
 #nltk.download('stopwords')
 
-
+#C:\Users\loren\anaconda3\envs\search\python.exe
 
 stop_words = stopwords.words('english')
 stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
