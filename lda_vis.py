@@ -1,7 +1,7 @@
 import pandas as pd
 import lda_prepare as ldap
 
-def format_topics_sentences(ldamodel=None, corpus=ldap.get_corpus(), texts=ldap.get_data()):
+def format_topics_sentences(ldamodel=None, corpus=ldap.get_corpus(), texts=ldap.get_data_words()):
     sent_topics_df = pd.DataFrame()
     for i, row_list in enumerate(ldamodel[corpus]):
         row = row_list[0] if ldamodel.per_word_topics else row_list            

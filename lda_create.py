@@ -3,6 +3,10 @@ import lda_prepare as lda
 import pyLDAvis.gensim_models as gensim_models
 import sys
 import lda_vis as ldav
+from gensim.models import CoherenceModel
+
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 #cluster visualization
 '''
@@ -26,23 +30,20 @@ if __name__ == '__main__':
 
     #if len(sys.argv) != 3:
     #    raise Exception("Usage: <#topics> <#cores>")
-    try:
-        syscores = int(sys.argv[2])
-        systopics = int(sys.argv[1])
-    except:
-        syscores = 1
-        systopics = 10
+    systopics = 10
+    print("Training SINGLEcore model with " + str(systopics) + " topics")
+    lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus, id2word=id2word, num_topics=systopics, update_every=1, random_state=100, chunksize=100, passes=10, alpha="auto", per_word_topics=True)
 
-    if syscores > 1:
-        print("Using " + str(syscores) + " cores, training MULTIcore model with " + str(systopics) + " topics")
-        lda_model = gensim.models.LdaMulticore(corpus=corpus, id2word=id2word, num_topics=systopics, workers=syscores)
-    else:
-        print("Training SINGLEcore model with " + str(systopics) + " topics")
-        lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus, id2word=id2word, num_topics=systopics, update_every=0, passes=20)
-    
     print('build SUCCESSFUL, visualizing...')
+    # Compute Perplexity
+    print('\nPerplexity: ', lda_model.log_perplexity(corpus))  # a measure of how good the model is. lower the better.
+
+    # Compute Coherence Score
+    coherence_model_lda = CoherenceModel(model=lda_model, texts=data_words, dictionary=id2word, coherence='c_v')
+    coherence_lda = coherence_model_lda.get_coherence()
+    print('\nCoherence Score: ', coherence_lda)
     # Visualizations using pyLDAvis
-    
+    '''
     LDAvis_prepared = gensim_models.prepare(lda_model, corpus, id2word)
     pyLDAvis.save_html(LDAvis_prepared, env.VISUALIZATION_PATH)
     
@@ -51,6 +52,8 @@ if __name__ == '__main__':
     dominant_topic.columns = ['Document_No', 'Dominant_Topic', 'Topic_Perc_Contrib', 'Keywords', 'Text']
     dominant_topic.head(10)
     print(type(dominant_topic))
+    '''
+
     # Cluster Visualization
     '''
     topic_weights = []
