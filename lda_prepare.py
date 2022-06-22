@@ -1,21 +1,25 @@
-import gensim, re, env, pandas as pd
+# Scrapes, Formats and Trains a Latent Dirichlet Allocation (LDA) model to be paired with LSA keyword search results.
+
+
+import gensim, re, env as env, spacy, warnings, pandas as pd
 import gensim.corpora as corpora
 from gensim.utils import simple_preprocess
 from nltk.corpus import stopwords
 from gensim.models import CoherenceModel
-import spacy, pathlib, random
 
-import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning)
-
-
 
 stop_words = stopwords.words('english')
 stop_words.extend(['from', 'subject', 're', 'edu', 'use'])
+
 if __name__ == '__main__':
-    # Format relevant information from datasets
-    papers = pd.read_csv(env.CSV_PATH).drop(columns=['dataset_id', 'acknowledgement'])
-    papers['description'] = papers['dataset_title']+" "+papers['relevant_info']
+
+    # Map relevant information from datasets, cut punctuation, and set all letters to lowercase
+
+    # UPDATE env.py FILE WITH ACCURATE CSV PATH BEFORE RUNNING    
+    papers = pd.read_csv('donated_datasets.csv').drop(columns=["ID","userID","introPaperID","Types","DOI","DateDonated","isTabular","URLFolder","URLReadme","URLLink","Graphics","Status","NumHits","NumInstances","NumAttributes","slug"])
+    # keep: Name, Abstract, Area, Task, AttributeTypes
+    papers['description'] = papers['Name']+" "+papers['Abstract']+" "+papers['Area']+" "+papers['Task']+" "+papers['AttributeTypes']
     papers['paper_text_processed'] = papers['description'].map(lambda x: re.sub('[,\.!?]', '', str(x)))
     papers['paper_text_processed'] = papers['description'].map(lambda x: str(x).lower())
 
@@ -25,14 +29,12 @@ if __name__ == '__main__':
             yield(gensim.utils.simple_preprocess(str(sentence),deacc=True))
 
 
-    # Format & Assign IDs
     data = papers.paper_text_processed.values.tolist()
     data_words = list(sent_to_words(data))
 
     #Make bigram/trigram models
     bigram = gensim.models.Phrases(data_words, min_count=5, threshold=100)
     trigram = gensim.models.Phrases(bigram[data_words])
-
     bigram_mod = gensim.models.phrases.Phraser(bigram)
     trigram_mod = gensim.models.phrases.Phraser(trigram)
 
@@ -53,61 +55,41 @@ if __name__ == '__main__':
             texts_out.append([token.lemma_ for token in doc if token.pos_ in allowed_postags])
         return texts_out
 
+    # Format, process and lemmatize data
     data_words_nostops = remove_stopwords(data_words)
     data_words_bigrams = make_bigrams(data_words_nostops)
     nlp = spacy.load("en_core_web_sm")
     data_lemmatized = lemmatization(data_words_bigrams, allowed_postags=['NOUN', 'ADJ', 'VERB', 'ADV'])
 
+    # Construct dictionary & corpus
     id2word = corpora.Dictionary(data_lemmatized)
     texts = data_lemmatized
     corpus = [id2word.doc2bow(text) for text in texts]
 
-    def prepare_default():
-        lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
-                                                id2word=id2word,
-                                                iterations=100,
-                                                num_topics=10, 
-                                                random_state=100,
-                                                update_every=1,
-                                                chunksize=2000,
-                                                passes=10,
-                                                alpha='auto',
-                                                per_word_topics=True)
-        # Compute Perplexity
-        print('\nPerplexity: ', lda_model.log_perplexity(corpus))  # a measure of how good the model is. lower the better.
+    # Build LDA Model (single-core)
+    lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
+                                            id2word=id2word,
+                                            iterations=100,
+                                            num_topics=13, 
+                                            random_state=100,
+                                            update_every=1,
+                                            chunksize=2000,
+                                            passes=10,
+                                            alpha='auto',
+                                            per_word_topics=True)
 
-        # Compute Coherence Score
-        coherence_model_lda = CoherenceModel(model=lda_model, texts=texts, corpus=corpus, dictionary=id2word, coherence='u_mass')
-        coherence_lda = coherence_model_lda.get_coherence()
-        print('\nCoherence Score: ', coherence_lda)
+    # Save Model
+    lda_model.save('model\\LDAsearch.model')
 
-    def prepare_to_file(iterations=100, topics=10, state=100, chunks=2000, passes=10, maxCycles=30):         
-        cycle = 10
-        container = []
-        while cycle <= maxCycles:
-            lda_model = gensim.models.ldamodel.LdaModel(corpus=corpus,
-                                                        id2word=id2word,
-                                                        iterations=iterations,
-                                                        num_topics=cycle, 
-                                                        random_state=state,
-                                                        update_every=1,
-                                                        chunksize=chunks,
-                                                        passes=passes,
-                                                        alpha='auto',
-                                                        per_word_topics=True)
+    # Optional Model Evaluation Steps
 
-            coherence_model_lda = CoherenceModel(model=lda_model, texts=texts, corpus=corpus, dictionary=id2word, coherence='u_mass')
-            perplexity, coherence = lda_model.log_perplexity(corpus), coherence_model_lda.get_coherence()
-            data = f"Cycle: {cycle}. Perplexity: {perplexity}, Coherence: {coherence}"
-            print(data)
-            container.append(data)
-            cycle=cycle+1
+    # Compute Model Perplexity
+    #perplexity = lda_model.log_perplexity(corpus)  # a measure of how good the model is. lower the better.
 
-        with open('collections.txt', 'a+') as file:
-            for i in container:
-                file.write(i + "\n")
+    # Measure Coherence Score
+    #coherence_model_lda = CoherenceModel(model=lda_model, texts=texts, corpus=corpus, dictionary=id2word, coherence='u_mass')
+    #coherence_lda = coherence_model_lda.get_coherence()
 
-    prepare_to_file()
-            
+    
             
                                           
